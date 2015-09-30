@@ -3,7 +3,7 @@
   Revised:        $Date: 2014-09-07 13:36:30 -0700 (Sun, 07 Sep 2014) $
   Revision:       $Revision: 40046 $
 
-  
+
 ******************************************************************************/
 
 /*********************************************************************
@@ -85,6 +85,7 @@ static uint16 rxMsgCount;
 // Time interval between sending messages
 static uint32 txMsgDelay = COORDINATORAPP_SEND_MSG_TIMEOUT;
 
+unsigned char signState;
 /*********************************************************************
  * LOCAL FUNCTIONS
  */
@@ -129,9 +130,9 @@ void CoordinatorApp_Init( uint8 task_id )
   // If the hardware is application specific - add it here.
   // If the hardware is other parts of the device add it in main().
 
-  CoordinatorApp_DstAddr.addrMode = (afAddrMode_t)AddrNotPresent;
-  CoordinatorApp_DstAddr.endPoint = 0;
-  CoordinatorApp_DstAddr.addr.shortAddr = 0;
+  CoordinatorApp_DstAddr.addrMode = (afAddrMode_t)Addr16Bit;
+  CoordinatorApp_DstAddr.endPoint = 10;
+  CoordinatorApp_DstAddr.addr.shortAddr = 0x0000;
 
   // Fill out the endpoint description.
   CoordinatorApp_epDesc.endPoint = COORDINATORAPP_ENDPOINT;
@@ -344,9 +345,7 @@ static void CoordinatorApp_ProcessZDOMsgs( zdoIncomingMsg_t *inMsg )
  * @param   shift - true if in shift/alt.
  * @param   keys - bit field for key events. Valid entries:
  *                 HAL_KEY_SW_4
- *                 HAL_KEY_SW_3
  *                 HAL_KEY_SW_2
- *                 HAL_KEY_SW_1
  *
  * @return  none
  */
@@ -354,78 +353,22 @@ static void CoordinatorApp_HandleKeys( uint8 shift, uint8 keys )
 {
   zAddrType_t dstAddr;
 
-  // Shift is used to make each button/switch dual purpose.
-  if ( shift )
+  //send command RED
+  if ( keys & HAL_KEY_SW_2 )
   {
-    if ( keys & HAL_KEY_SW_1 )
-    {
-    }
-    if ( keys & HAL_KEY_SW_2 )
-    {
-    }
-    if ( keys & HAL_KEY_SW_3 )
-    {
-    }
-    if ( keys & HAL_KEY_SW_4 )
-    {
-    }
+    HalLedSet ( HAL_LED_4, HAL_LED_MODE_OFF );
+    signState = 0;
+    HalLcdWriteString( "send red", HAL_LCD_LINE_3 );
+    CoordinatorApp_SendTheMessage();
   }
-  else
+
+  //send command GREEN
+  if ( keys & HAL_KEY_SW_4 )
   {
-    if ( keys & HAL_KEY_SW_1 )
-    {
-#if defined( SWITCH1_BIND )
-      // We can use SW1 to simulate SW2 for devices that only have one switch,
-      keys |= HAL_KEY_SW_2;
-#elif defined( SWITCH1_MATCH )
-      // or use SW1 to simulate SW4 for devices that only have one switch
-      keys |= HAL_KEY_SW_4;
-#else
-      // Normally, SW1 changes the rate that messages are sent
-      if ( txMsgDelay > 100 )
-      {
-        // Cut the message TX delay in half
-        txMsgDelay /= 2;
-      }
-      else
-      {
-        // Reset to the default
-        txMsgDelay = COORDINATORAPP_SEND_MSG_TIMEOUT;
-      }
-#endif
-    }
-
-    if ( keys & HAL_KEY_SW_2 )
-    {
-      HalLedSet ( HAL_LED_4, HAL_LED_MODE_OFF );
-
-      // Initiate an End Device Bind Request for the mandatory endpoint
-      dstAddr.addrMode = Addr16Bit;
-      dstAddr.addr.shortAddr = 0x0000; // Coordinator
-      ZDP_EndDeviceBindReq( &dstAddr, NLME_GetShortAddr(),
-                            CoordinatorApp_epDesc.endPoint,
-                            COORDINATORAPP_PROFID,
-                            COORDINATORAPP_MAX_CLUSTERS, (cId_t *)CoordinatorApp_ClusterList,
-                            COORDINATORAPP_MAX_CLUSTERS, (cId_t *)CoordinatorApp_ClusterList,
-                            FALSE );
-    }
-
-    if ( keys & HAL_KEY_SW_3 )
-    {
-    }
-
-    if ( keys & HAL_KEY_SW_4 )
-    {
-      HalLedSet ( HAL_LED_4, HAL_LED_MODE_OFF );
-      // Initiate a Match Description Request (Service Discovery)
-      dstAddr.addrMode = AddrBroadcast;
-      dstAddr.addr.shortAddr = NWK_BROADCAST_SHORTADDR;
-      ZDP_MatchDescReq( &dstAddr, NWK_BROADCAST_SHORTADDR,
-                        COORDINATORAPP_PROFID,
-                        COORDINATORAPP_MAX_CLUSTERS, (cId_t *)CoordinatorApp_ClusterList,
-                        COORDINATORAPP_MAX_CLUSTERS, (cId_t *)CoordinatorApp_ClusterList,
-                        FALSE );
-    }
+    HalLedSet ( HAL_LED_4, HAL_LED_MODE_ON );
+    signState = 1;
+    HalLcdWriteString( "send Green", HAL_LCD_LINE_3 );
+    CoordinatorApp_SendTheMessage();
   }
 }
 
@@ -446,13 +389,17 @@ static void CoordinatorApp_HandleKeys( uint8 shift, uint8 keys )
  */
 static void CoordinatorApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
 {
+
   switch ( pkt->clusterId )
   {
     case COORDINATORAPP_CLUSTERID:
+      //get the address of the sign and put it in to the sending address
+      CoordinatorApp_DstAddr.addr.shortAddr = pkt->srcAddr.addr.shortAddr;
+
       rxMsgCount += 1;  // Count this message
       HalLedSet ( HAL_LED_4, HAL_LED_MODE_BLINK );  // Blink an LED
 #if defined( LCD_SUPPORTED )
-      HalLcdWriteString( (char*)pkt->cmd.Data, HAL_LCD_LINE_1 );
+      HalLcdWriteStringValue("received", *(pkt->cmd.Data), 10 ,HAL_LCD_LINE_1 );
       HalLcdWriteStringValue( "Rcvd:", rxMsgCount, 10, HAL_LCD_LINE_2 );
 #elif defined( WIN32 )
       WPRINTSTR( pkt->cmd.Data );
@@ -472,12 +419,10 @@ static void CoordinatorApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
  */
 static void CoordinatorApp_SendTheMessage( void )
 {
-  char theMessageData[] = "Hello World";
-
   if ( AF_DataRequest( &CoordinatorApp_DstAddr, &CoordinatorApp_epDesc,
                        COORDINATORAPP_CLUSTERID,
-                       (byte)osal_strlen( theMessageData ) + 1,
-                       (byte *)&theMessageData,
+                       1,
+                       &signState,
                        &CoordinatorApp_TransID,
                        AF_DISCV_ROUTE, AF_DEFAULT_RADIUS ) == afStatus_SUCCESS )
   {
@@ -489,47 +434,3 @@ static void CoordinatorApp_SendTheMessage( void )
   }
 }
 
-#if defined( IAR_ARMCM3_LM )
-/*********************************************************************
- * @fn      CoordinatorApp_ProcessRtosMessage
- *
- * @brief   Receive message from RTOS queue, send response back.
- *
- * @param   none
- *
- * @return  none
- */
-static void CoordinatorApp_ProcessRtosMessage( void )
-{
-  osalQueue_t inMsg;
-
-  if ( osal_queue_receive( OsalQueue, &inMsg, 0 ) == pdPASS )
-  {
-    uint8 cmndId = inMsg.cmnd;
-    uint32 counter = osal_build_uint32( inMsg.cbuf, 4 );
-
-    switch ( cmndId )
-    {
-      case CMD_INCR:
-        counter += 1;  /* Increment the incoming counter */
-                       /* Intentionally fall through next case */
-
-      case CMD_ECHO:
-      {
-        userQueue_t outMsg;
-
-        outMsg.resp = RSP_CODE | cmndId;  /* Response ID */
-        osal_buffer_uint32( outMsg.rbuf, counter );    /* Increment counter */
-        osal_queue_send( UserQueue1, &outMsg, 0 );  /* Send back to UserTask */
-        break;
-      }
-
-      default:
-        break;  /* Ignore unknown command */
-    }
-  }
-}
-#endif
-
-/*********************************************************************
- */

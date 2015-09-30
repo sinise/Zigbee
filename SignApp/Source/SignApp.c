@@ -386,15 +386,15 @@ static void SignApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
   {
     case SIGNAPP_CLUSTERID:
       rxMsgCount += 1;  // Count this message
-      HalLedSet ( HAL_LED_4, HAL_LED_MODE_BLINK );  // Blink an LED
-      //if incoming state is false (indicate red sign)
-      /*if (pkt->cmd.Data){
+      //HalLedSet ( HAL_LED_4, HAL_LED_MODE_BLINK );  // Blink an LED
+      //if incoming state is 1 (indicate green sign)
+      if (*pkt->cmd.Data == 1){
+        HalLedSet( HAL_LED_4, HAL_LED_MODE_ON );
+      }
+      //if incoming state is 0 (indicate red sign)
+      else {
         HalLedSet( HAL_LED_4, HAL_LED_MODE_OFF );
       }
-      //if incoming state is true (indicate green sign)
-      else {
-        HalLedSet( HAL_LED_4, HAL_LED_MODE_ON );
-      }*/
 #if defined( LCD_SUPPORTED )
       HalLcdWriteStringValue("incomming", *(pkt->cmd.Data), 10, HAL_LCD_LINE_1 );
       HalLcdWriteStringValue( "Rcvd:", rxMsgCount, 10, HAL_LCD_LINE_2 );
