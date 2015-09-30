@@ -47,7 +47,7 @@ endPointDesc_t SignApp_epDesc;
  * LOCAL VARIABLES
  */
 //Is there a ship pressent
-bool shipPressent = false;
+unsigned char shipPressent;
 bool lastMessageSend = true;
 
 byte SignApp_TaskID;   // Task ID for internal task/event processing
@@ -270,61 +270,8 @@ uint16 SignApp_ProcessEvent( uint8 task_id, uint16 events )
   return 0;
 }
 
-/*********************************************************************
- * Event Generation Functions
- */
 
-/*********************************************************************
- * @fn      SignApp_ProcessZDOMsgs()
- *
- * @brief   Process response messages
- *
- * @param   none
- *
- * @return  none
- */
-/* We don't use binding
-static void SignApp_ProcessZDOMsgs( zdoIncomingMsg_t *inMsg )
-{
-  switch ( inMsg->clusterID )
-  {
-    case End_Device_Bind_rsp:
-      if ( ZDO_ParseBindRsp( inMsg ) == ZSuccess )
-      {
-        // Light LED
-        HalLedSet( HAL_LED_4, HAL_LED_MODE_ON );
-      }
-#if defined( BLINK_LEDS )
-      else
-      {
-        // Flash LED to show failure
-        HalLedSet ( HAL_LED_4, HAL_LED_MODE_FLASH );
-      }
-#endif
-      break;
 
-    case Match_Desc_rsp:
-      {
-        ZDO_ActiveEndpointRsp_t *pRsp = ZDO_ParseEPListRsp( inMsg );
-        if ( pRsp )
-        {
-          if ( pRsp->status == ZSuccess && pRsp->cnt )
-          {
-            SignApp_DstAddr.addrMode = (afAddrMode_t)Addr16Bit;
-            SignApp_DstAddr.addr.shortAddr = pRsp->nwkAddr;
-            // Take the first endpoint, Can be changed to search through endpoints
-            SignApp_DstAddr.endPoint = pRsp->epList[0];
-
-            // Light LED
-            HalLedSet( HAL_LED_4, HAL_LED_MODE_ON );
-          }
-          osal_mem_free( pRsp );
-        }
-      }
-      break;
-  }
-}
-*/
 /*********************************************************************
  * @fn      SignApp_HandleKeys
  *
@@ -441,15 +388,15 @@ static void SignApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
       rxMsgCount += 1;  // Count this message
       HalLedSet ( HAL_LED_4, HAL_LED_MODE_BLINK );  // Blink an LED
       //if incoming state is false (indicate red sign)
-      if (!pkt->cmd.Data){
+      /*if (pkt->cmd.Data){
         HalLedSet( HAL_LED_4, HAL_LED_MODE_OFF );
       }
       //if incoming state is true (indicate green sign)
       else {
         HalLedSet( HAL_LED_4, HAL_LED_MODE_ON );
-      }
+      }*/
 #if defined( LCD_SUPPORTED )
-      HalLcdWriteStringValue("incoming", (uint16)pkt->cmd.Data, 10, HAL_LCD_LINE_1 );
+      HalLcdWriteStringValue("incomming", *(pkt->cmd.Data), 10, HAL_LCD_LINE_1 );
       HalLcdWriteStringValue( "Rcvd:", rxMsgCount, 10, HAL_LCD_LINE_2 );
 #elif defined( WIN32 )
       WPRINTSTR( pkt->cmd.Data );
@@ -469,14 +416,24 @@ static void SignApp_MessageMSGCB( afIncomingMSGPacket_t *pkt )
  */
 static void SignApp_SendStatusChange( void )
 {
+  char theMessageData = 'a';
   if ( !lastMessageSend || SignApp_CheckShipStatusChange()){
-   if ( AF_DataRequest( &SignApp_DstAddr, &SignApp_epDesc,
+      HalLcdWriteStringValue("sizeofShipPres", sizeof(shipPressent), 10, HAL_LCD_LINE_3 );
+
+
+    if ( AF_DataRequest( &SignApp_DstAddr, &SignApp_epDesc,
                          SIGNAPP_CLUSTERID,
                          1,
                          &shipPressent,
                          &SignApp_TransID,
                          AF_DISCV_ROUTE, AF_DEFAULT_RADIUS ) == afStatus_SUCCESS )
     {
+      /*AF_DataRequest( &SignApp_DstAddr, &SignApp_epDesc,
+                         SIGNAPP_CLUSTERID,
+                         1,
+                         (byte *)&theMessageData,
+                         &SignApp_TransID,
+                         AF_DISCV_ROUTE, AF_DEFAULT_RADIUS );*/
       // Successfully requested to be sent.
       HalLcdWriteStringValue("msgSndCount", ++txMsgCount, 10, HAL_LCD_LINE_1 );
       HalLcdWriteStringValue("shipPressent", shipPressent, 10, HAL_LCD_LINE_2 );
@@ -503,14 +460,14 @@ static void SignApp_SendStatusChange( void )
  */
 static bool SignApp_CheckShipStatusChange( void )
 {
-  bool lastShipPressent = shipPressent;
+   unsigned char lastShipPressent = shipPressent;
   uint16 distance = HalAdcRead(HAL_ADC_CHANNEL_7, HAL_ADC_RESOLUTION_8);
   HalLcdWriteStringValue( "ADC", distance, 10, HAL_LCD_LINE_3 );
   if (distance < 64) {
-    shipPressent = false;
+    shipPressent = 0;
   }
   else {
-    shipPressent = true;
+    shipPressent = 1;
   }
   if (lastShipPressent == shipPressent){
     return false;
