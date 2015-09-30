@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<workspace>
+  <project>
+    <path>$WS_DIR$\SignApp.ewp</path>
+  </project>
+  <batchBuild>
+    <batchDefinition>
+      <name>ALL</name>
+      <member>
+        <project>SignApp</project>
+        <configuration>Coordinator</configuration>
+      </member>
+      <member>
+        <project>SignApp</project>
+        <configuration>Router</configuration>
+      </member>
+      <member>
+        <project>SignApp</project>
+        <configuration>EndDevice</configuration>
+      </member>
+    </batchDefinition>
+  </batchBuild>
+</workspace>
+
+

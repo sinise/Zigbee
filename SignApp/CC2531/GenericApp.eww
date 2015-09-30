@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+
+<workspace>
+  <project>
+    <path>$WS_DIR$\SignApp.ewp</path>
+  </project>
+  <batchBuild>
+    <batchDefinition>
+      <name>All</name>
+      <member>
+        <project>SignApp</project>
+        <configuration>Coordinator</configuration>
+      </member>
+      <member>
+        <project>SignApp</project>
+        <configuration>Coordinator-SBL</configuration>
+      </member>
+      <member>
+        <project>SignApp</project>
+        <configuration>EndDevice</configuration>
+      </member>
+      <member>
+        <project>SignApp</project>
+        <configuration>EndDevice-SBL</configuration>
+      </member>
+      <member>
+        <project>SignApp</project>
+        <configuration>Router</configuration>
+      </member>
+      <member>
+        <project>SignApp</project>
+        <configuration>Router-SBL</configuration>
+      </member>
+    </batchDefinition>
+  </batchBuild>
+</workspace>
+
+
