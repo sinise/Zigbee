@@ -67,7 +67,7 @@ extern "C"
 #define SIGNAPP_CLUSTERID          1
 
 // Send Message Timeout
-#define SIGNAPP_CHECK_SHIP_INTERVAL   1000     // Every 5 seconds
+#define SIGNAPP_CHECK_SHIP_INTERVAL   5000     // Every 5 seconds
 
 // Application Events (OSAL) - These are bit weighted definitions.
 #define SIGNAPP_CHECK_SHIP_EVT       0x0001

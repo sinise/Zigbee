@@ -255,15 +255,6 @@ uint16 CoordinatorApp_ProcessEvent( uint8 task_id, uint16 events )
   //  (setup in CoordinatorApp_Init()).
   if ( events & COORDINATORAPP_SEND_MSG_EVT )
   {
-    // Send "the" message
-    CoordinatorApp_SendTheMessage();
-
-    // Setup to send message again
-    osal_start_timerEx( CoordinatorApp_TaskID,
-                        COORDINATORAPP_SEND_MSG_EVT,
-                        txMsgDelay );
-
-    // return unprocessed events
     return (events ^ COORDINATORAPP_SEND_MSG_EVT);
   }
 
@@ -356,7 +347,7 @@ static void CoordinatorApp_HandleKeys( uint8 shift, uint8 keys )
   //send command RED
   if ( keys & HAL_KEY_SW_2 )
   {
-    HalLedSet ( HAL_LED_4, HAL_LED_MODE_OFF );
+    HalLedSet ( HAL_LED_2, HAL_LED_MODE_ON );
     signState = 0;
     HalLcdWriteString( "send red", HAL_LCD_LINE_3 );
     CoordinatorApp_SendTheMessage();
@@ -365,7 +356,7 @@ static void CoordinatorApp_HandleKeys( uint8 shift, uint8 keys )
   //send command GREEN
   if ( keys & HAL_KEY_SW_4 )
   {
-    HalLedSet ( HAL_LED_4, HAL_LED_MODE_ON );
+    HalLedSet ( HAL_LED_2, HAL_LED_MODE_OFF );
     signState = 1;
     HalLcdWriteString( "send Green", HAL_LCD_LINE_3 );
     CoordinatorApp_SendTheMessage();

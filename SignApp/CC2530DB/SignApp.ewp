@@ -2522,6 +2522,7 @@
           <state>LCD_SUPPORTED=DEBUG</state>
           <state>POWER_SAVING</state>
           <state>ISR_KEYINTERRUPT</state>
+          <state> HAL_SLEEP_DEBUG_LED</state>
         </option>
         <option>
           <name>CCPreprocFile</name>
